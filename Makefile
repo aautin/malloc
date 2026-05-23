@@ -20,7 +20,7 @@ OBJS		:=	$(addprefix $(OBJS_PATH)/,$(FILES:.c=.o))
 DEPS		:=	$(OBJS:.o=.d)
 
 CC			:=	gcc
-CFLAGS		:=	-Wall -Wextra -Werror
+CFLAGS		:=	-Wall -Wextra -Werror -fPIC
 
 LIBFT_PATH	:=	42_libft
 LIBFT_LIB	:=	$(LIBFT_PATH)/libft.a
@@ -37,7 +37,7 @@ $(LIBFT_LIB):
 	make -C $(LIBFT_PATH)
 
 $(NAME): $(OBJS) $(LIBFT_LIB)
-	$(CC) -shared -o $@ $^
+	$(CC) -shared -o $@ $^ $(LDFLAGS)
 	rm -f $(SHORTNAME)
 	ln -s $@ $(SHORTNAME)
 

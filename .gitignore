@@ -1,2 +1,4 @@
 obj/
 *.so
+test*
+!test*.c
