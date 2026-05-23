@@ -1,10 +1,12 @@
 #include "malloc.h"
 
-#include "ft_printf.h"
+#include <unistd.h>
 
 void *malloc(size_t size)
 {
-	ft_printf("malloc called with size: %zu\n", size);
+	write(STDOUT_FILENO, "My malloc called\n", 18);
+
 	(void) size;
+	
 	return (NULL);
 }

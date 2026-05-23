@@ -22,7 +22,7 @@ DEPS		:=	$(OBJS:.o=.d)
 CC			:=	gcc
 CFLAGS		:=	-Wall -Wextra -Werror -fPIC
 
-LIBFT_PATH	:=	42_libft
+LIBFT_PATH	:=	libft
 LIBFT_LIB	:=	$(LIBFT_PATH)/libft.a
 LIBFT_INC	:=	$(LIBFT_PATH)/inc
 
