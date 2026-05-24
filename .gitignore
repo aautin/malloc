@@ -2,3 +2,4 @@ obj/
 *.so
 test*
 !test*.c
+.vscode/
