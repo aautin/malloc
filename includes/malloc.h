@@ -49,7 +49,7 @@ void   remove_block_from_list(t_block **blocks, t_block *to_remove);
 t_blocks* get_blocks(void);
 
 // Library functions
-void      show_memory(void);
+void      show_alloc_mem(void);
 void      free(void *ptr);
 void*     malloc(size_t size);
 void*     realloc(void *ptr, size_t size);
