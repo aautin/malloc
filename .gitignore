@@ -1,5 +1,4 @@
 obj/
 *.so
-test*
-!test*.c
+*.out
 .vscode/
