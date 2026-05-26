@@ -1,10 +1,22 @@
 #pragma once
 
 // LIBC headers
+#define _GNU_SOURCE
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
+typedef enum e_block_type
+{
+	TINY_BLOCK,
+	SMALL_BLOCK,
+	LARGE_BLOCK,
+
+	BLOCK_TYPE_COUNT
+}	t_block_type;
 
 enum e_fixed_size
 {
@@ -15,10 +27,17 @@ enum e_fixed_size
 // Structs
 typedef struct s_space
 {
+	// Metadata for allocation
 	size_t          size;
 	struct s_space *previous;
-	char 		    taken;
-	char 		    is_last;
+	bool 		    taken;
+	bool 		    is_last;
+
+	// Metadata for registration
+	unsigned short  time_since_start;
+	pid_t		    owner_thread_id;
+	t_block_type	block_type;
+	bool            is_realloc;
 }	t_space;
 
 typedef struct s_block
@@ -32,6 +51,8 @@ typedef struct s_blocks
 	t_block *tinies;
 	t_block *smalls;
 	t_block *larges;
+
+	struct timeval start_time;
 }	t_blocks;
 
 // Utils functions

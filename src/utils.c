@@ -89,3 +89,5 @@ void remove_block_from_list(t_block **blocks, t_block *to_remove)
 		to_remove->next->previous = to_remove->previous;
 	}
 }
+
+void update_
