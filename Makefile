@@ -6,9 +6,12 @@ NAME		=	libft_malloc_$(HOSTTYPE).so
 SHORTNAME	=	libft_malloc.so
 
 FILES		:=	\
+				debug.c \
 				free.c \
+				global.c \
 				malloc.c \
-				realloc.c
+				realloc.c \
+				utils.c
 
 SRCS_PATH	:=	src
 SRCS		:=	$(addprefix $(SRCS_PATH)/,$(FILES))

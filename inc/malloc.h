@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 enum e_fixed_size
 {
@@ -33,7 +34,24 @@ typedef struct s_blocks
 	t_block *larges;
 }	t_blocks;
 
-// Functions
-void *malloc(size_t size);
-void free(void *ptr);
-void *realloc(void *ptr, size_t size);
+// Debug functions
+void show_memory(void);
+
+// Utils functions
+size_t get_page_size(void);
+size_t align_on_16(size_t size);
+size_t align_on_page(size_t size);
+size_t get_block_size(enum e_fixed_size fixed_size);
+size_t get_large_block_size(size_t custom_size);
+void   push_front(t_block **blocks, t_block *new_block);
+bool   is_in_blocks(t_block *blocks, t_block *to_find);
+size_t blocks_number(t_block *blocks);
+void   remove_block_from_list(t_block **blocks, t_block *to_remove);
+
+// Global variables
+t_blocks* get_blocks(void);
+
+// Library functions
+void      free(void *ptr);
+void*     malloc(size_t size);
+void*     realloc(void *ptr, size_t size);
