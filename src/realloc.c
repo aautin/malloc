@@ -22,8 +22,58 @@ void *realloc(void *ptr, size_t size)
 	}
 	else if (space->size > size)
 	{
+		size_t bytes_getting_freed = space->size - size;
+		if (!space->is_last)
+		{
+			t_space *next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + space->size);
+			if (!next_space->taken)
+			{
+				//
+				// The next space is free so we merge it with the bytes getting freed by the reallocation
+				//
+				bytes_getting_freed += next_space->size;
+
+				bool     old_next_space_is_last = next_space->is_last;
+				t_space *new_next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + size);
+
+				new_next_space->previous = space;
+				new_next_space->size     = bytes_getting_freed;
+				new_next_space->taken    = false;
+				new_next_space->is_last  = old_next_space_is_last;
+
+				space->size = size;
+				return ptr;
+			}
+		}
+		
+		if (bytes_getting_freed >= align_on_16(sizeof(t_space)) + 16)
+		{
+			//
+			// There is no next space or the next space is not free but there are enough remaining bytes to create a new free space
+			// If there is a next space, we update its previous pointer to the new free space
+			//
+			t_space *new_next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + size);
+
+			bool old_space_is_last = space->is_last;
+			if (!old_space_is_last)
+			{
+				t_space *next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + space->size);
+				next_space->previous = new_next_space;
+			}
+
+			new_next_space->previous = space;
+			new_next_space->size     = bytes_getting_freed;
+			new_next_space->taken    = false;
+			new_next_space->is_last  = old_space_is_last;
+
+			space->size    = size;
+			space->is_last = true;
+			return ptr;
+		}
+
 		//
-		// To be continued
+		// There is no next space and the remaining bytes are not big enought to create a new space,
+		// we just keep the allocation as it is
 		//
 		return ptr;
 	}
