@@ -35,6 +35,7 @@ LDFLAGS     :=	-L$(LIBFT_PATH) -lft
 TESTS_PATH	:=	tests
 TESTS		:=	\
 				main.c \
+				main_ex.c \
 				test0.c \
 				test1.c \
 				test2.c \

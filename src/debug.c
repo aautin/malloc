@@ -30,7 +30,7 @@ static void print_address(void* address)
 	}
 }
 
-static size_t print_block(t_block *block)
+static size_t print_block(t_block *block, bool show_dump)
 {
 	size_t bytes = 0;
 	
@@ -46,6 +46,53 @@ static size_t print_block(t_block *block)
 			ft_putnbr_fd((int)space->size, STDOUT_FILENO);
 			write(STDOUT_FILENO, " bytes\n", 7);
 			bytes += space->size;
+
+			for (size_t i = 0; show_dump && i < space->size; i+=16)
+			{
+				unsigned char *data = (unsigned char *)((char *)space + align_on_16(sizeof(t_space)));
+				size_t line_size = (space->size - i) < 16 ? (space->size - i) : 16;
+				char buf[64];
+				int pos = 0;
+				/* offset */
+				unsigned int off = (unsigned int)i;
+				for (int k = 7; k >= 0; k--)
+				{
+					int nib = (off >> (k * 4)) & 0xF;
+					buf[pos++] = (nib < 10) ? ('0' + nib) : ('a' + (nib - 10));
+				}
+				buf[pos++] = '\t';
+				/* hex bytes */
+				for (size_t j = 0; j < 16; j++)
+				{
+					if (j < line_size)
+					{
+						unsigned char v = data[i + j];
+						int hi = (v >> 4) & 0xF;
+						int lo = v & 0xF;
+						buf[pos++] = (hi < 10) ? ('0' + hi) : ('a' + (hi - 10));
+						buf[pos++] = (lo < 10) ? ('0' + lo) : ('a' + (lo - 10));
+					}
+					else
+					{
+						buf[pos++] = '0'; buf[pos++] = '0';
+					}
+					if (j != 15) buf[pos++] = ' ';
+				}
+				/* spacer and ascii */
+				buf[pos++] = ' ';
+				buf[pos++] = ' ';
+				buf[pos++] = '|';
+				for (size_t j = 0; j < line_size; j++)
+				{
+					unsigned char c = data[i + j];
+					buf[pos++] = (c >= 32 && c <= 126) ? c : '.';
+				}
+				/* fill remaining ascii slots */
+				for (size_t j = line_size; j < 16; j++) buf[pos++] = '.';
+				buf[pos++] = '|';
+				buf[pos++] = '\n';
+				write(STDOUT_FILENO, buf, pos);
+			}
 		}
 		if (space->is_last)
 		{
@@ -73,19 +120,45 @@ void show_alloc_mem(void)
 	for (t_block *block = get_blocks()->tinies; block != NULL; block = block->next)
 	{
 		print_block_header("TINY", block);
-		bytes += print_block(block);
+		bytes += print_block(block, false);
 	}
 
 	for (t_block *block = get_blocks()->smalls; block != NULL; block = block->next)
 	{
 		print_block_header("SMALL", block);
-		bytes += print_block(block);
+		bytes += print_block(block, false);
 	}
 
 	for (t_block *block = get_blocks()->larges; block != NULL; block = block->next)
 	{
 		print_block_header("LARGE", block);
-		bytes += print_block(block);
+		bytes += print_block(block, false);
+	}
+
+	ft_putstr_fd("Total : ", STDOUT_FILENO);
+	ft_putnbr_fd((int)bytes, STDOUT_FILENO);
+	write(STDOUT_FILENO, " bytes\n", 7);
+}
+
+void show_alloc_mem_ex(void)
+{
+	size_t bytes = 0;
+	for (t_block *block = get_blocks()->tinies; block != NULL; block = block->next)
+	{
+		print_block_header("TINY", block);
+		bytes += print_block(block, true);
+	}
+
+	for (t_block *block = get_blocks()->smalls; block != NULL; block = block->next)
+	{
+		print_block_header("SMALL", block);
+		bytes += print_block(block, true);
+	}
+
+	for (t_block *block = get_blocks()->larges; block != NULL; block = block->next)
+	{
+		print_block_header("LARGE", block);
+		bytes += print_block(block, true);
 	}
 
 	ft_putstr_fd("Total : ", STDOUT_FILENO);
