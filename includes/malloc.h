@@ -34,9 +34,6 @@ typedef struct s_blocks
 	t_block *larges;
 }	t_blocks;
 
-// Debug functions
-void show_memory(void);
-
 // Utils functions
 size_t get_page_size(void);
 size_t align_on_16(size_t size);
@@ -52,6 +49,7 @@ void   remove_block_from_list(t_block **blocks, t_block *to_remove);
 t_blocks* get_blocks(void);
 
 // Library functions
+void      show_memory(void);
 void      free(void *ptr);
 void*     malloc(size_t size);
 void*     realloc(void *ptr, size_t size);

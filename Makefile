@@ -16,7 +16,7 @@ FILES		:=	\
 SRCS_PATH	:=	src
 SRCS		:=	$(addprefix $(SRCS_PATH)/,$(FILES))
 
-INC     	:=	inc
+INC     	:=	includes
 
 OBJS_PATH	:=	obj
 OBJS		:=	$(addprefix $(OBJS_PATH)/,$(FILES:.c=.o))
