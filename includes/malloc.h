@@ -38,14 +38,11 @@ typedef struct s_block
 
 typedef struct s_blocks
 {
+	pthread_mutex_t mutex;
+
 	t_block        *tinies;
-	pthread_mutex_t tinies_mutex;
-
 	t_block        *smalls;
-	pthread_mutex_t smalls_mutex;
-
 	t_block        *larges;
-	pthread_mutex_t larges_mutex;
 } t_blocks;
 
 // Utils functions
@@ -68,5 +65,7 @@ t_blocks* get_blocks(void);
 void      show_alloc_mem(void);
 void      show_alloc_mem_ex(void);
 void      free(void *ptr);
+void      free_without_lock(void *ptr);
 void*     malloc(size_t size);
+void*     malloc_without_lock(size_t size);
 void*     realloc(void *ptr, size_t size);

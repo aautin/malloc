@@ -40,7 +40,7 @@ static void prepare_block(t_block *block, size_t block_size, size_t aligned_allo
 		next_space->size       = block_size - align_on_16(sizeof(t_block)) - align_on_16(sizeof(t_space)) - aligned_allocation_size;
 		next_space->taken      = false;
 		next_space->is_last    = true;
-		next_space->block_type = space->block_type;
+		next_space->block_type = block_type;
 	}
 	else
 	{
@@ -55,6 +55,8 @@ static void prepare_block(t_block *block, size_t block_size, size_t aligned_allo
 
 static void allocate_space(t_space* space, size_t aligned_allocation_size, t_block_type block_type)
 {
+	space->block_type = block_type;
+	
 	if (space->size >= aligned_allocation_size + align_on_16(sizeof(t_space)) + 16)
 	{
 		t_space *new_next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + aligned_allocation_size);
@@ -69,7 +71,16 @@ static void allocate_space(t_space* space, size_t aligned_allocation_size, t_blo
 				new_next_space->size     = space->size - aligned_allocation_size - align_on_16(sizeof(t_space)) + align_on_16(sizeof(t_space)) + next_space->size;
 				new_next_space->taken    = false;
 				new_next_space->is_last  = next_space->is_last;
-				new_next_space->block_type = space->block_type;
+				new_next_space->block_type = block_type;
+				
+				// Update the previous pointer of the space after next_space if it exists
+				if (!next_space->is_last)
+				{
+					t_space *after_next = (t_space *)((char *)next_space + align_on_16(sizeof(t_space)) + next_space->size);
+					after_next->previous = new_next_space;
+				}
+				
+				space->is_last = false;
 				return;
 			}
 		}
@@ -78,7 +89,13 @@ static void allocate_space(t_space* space, size_t aligned_allocation_size, t_blo
 		new_next_space->size     = space->size - aligned_allocation_size - align_on_16(sizeof(t_space));
 		new_next_space->taken    = false;
 		new_next_space->is_last  = space->is_last;
-		new_next_space->block_type = space->block_type;
+		new_next_space->block_type = block_type;
+
+		if (!space->is_last)
+		{
+			t_space *old_next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + space->size);
+			old_next_space->previous = new_next_space;
+		}
 
 		space->is_last = false;
 	}
@@ -86,7 +103,6 @@ static void allocate_space(t_space* space, size_t aligned_allocation_size, t_blo
 	{
 		aligned_allocation_size = space->size;
 	}
-	space->block_type = block_type;
 	space->taken = true;
 	space->size  = aligned_allocation_size;
 }
@@ -116,29 +132,49 @@ static void* apply(t_block** blocks, size_t size, t_block_type type)
 	}
 }
 
-void *malloc(size_t size)
+void *malloc_without_lock(size_t size)
 {
 	t_block**        blocks;
-	pthread_mutex_t* mutex;
+	t_block_type     type = get_type(size);
 
-	t_block_type type = get_type(size);
 	switch (type)
 	{
 		case TINY_BLOCK:
 			blocks = &get_blocks()->tinies;
-			mutex = &get_blocks()->tinies_mutex;
 			break;
 		case SMALL_BLOCK:
 			blocks = &get_blocks()->smalls;
-			mutex = &get_blocks()->smalls_mutex;
 			break;
 		case LARGE_BLOCK:
 			blocks = &get_blocks()->larges;
-			mutex = &get_blocks()->larges_mutex;
 			break;
 	}
 
+	void* ptr = apply(blocks, size, type);
+	return ptr;
+}
+
+
+void *malloc(size_t size)
+{
+	t_block**        blocks;
+	pthread_mutex_t* mutex = &get_blocks()->mutex;
+	t_block_type     type = get_type(size);
+
 	pthread_mutex_lock(mutex);
+	switch (type)
+	{
+		case TINY_BLOCK:
+			blocks = &get_blocks()->tinies;
+			break;
+		case SMALL_BLOCK:
+			blocks = &get_blocks()->smalls;
+			break;
+		case LARGE_BLOCK:
+			blocks = &get_blocks()->larges;
+			break;
+	}
+
 	void* ptr = apply(blocks, size, type);
 	pthread_mutex_unlock(mutex);
 	return ptr;

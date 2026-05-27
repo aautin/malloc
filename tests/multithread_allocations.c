@@ -6,27 +6,84 @@
 #include <pthread.h>
 #include <unistd.h>
 
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 //
-// Each thread does 1 tiny, 1 small, 1 large allocations
+// Each thread does 1 tiny and 1 small allocations
 //
 void *thread_mixed_allocations(void *arg)
 {
-	int thread_id = *(int *)arg;
-	size_t allocations[3] = {256, 4096, 131072};
+	(void) arg;
+	size_t allocations[2] = {256, 4096};
 
-	void** allocations_results = malloc(sizeof(void*) * 3);
+	void** allocations_results = malloc(sizeof(void*) * 2);
 
-	for (size_t i = 0; i < 3; ++i)
+	for (size_t i = 0; i < 2; ++i)
 	{
 		allocations_results[i] = malloc(allocations[i]);
-		if (allocations_results[i] == NULL)
-		{
-			perror("malloc failed");
-			exit(EXIT_FAILURE);
-		}
 	}
 
 	return allocations_results;
+}
+
+//
+// Each thread reallocs its tiny and small allocations to smaller and bigger sizes, respectively
+//
+void *thread_mixed_reallocations(void *arg)
+{
+	void** allocations_results = arg;
+	size_t allocations[2] = {20, 4500};
+
+	for (size_t i = 0; i < 2; ++i)
+	{
+		allocations_results[i] = realloc(allocations_results[i], allocations[i]);
+	}
+
+	return allocations_results;
+}
+
+void print_address(void* address)
+{
+	char buffer[20];
+	int i = 0;
+	unsigned long long addr = (unsigned long long) address;
+	
+	if (addr == 0)
+	{
+		write(STDOUT_FILENO, "0x0", 3);
+		return;
+	}
+	
+	while (addr > 0)
+	{
+		int digit = addr % 16;
+		if (digit < 10)
+		buffer[i++] = '0' + digit;
+		else
+		buffer[i++] = 'a' + (digit - 10);
+		addr /= 16;
+	}
+	
+	write(STDOUT_FILENO, "0x", 2);
+	while (i > 0)
+	{
+		write(STDOUT_FILENO, &buffer[--i], 1);
+	}
+}
+
+//
+// Each thread free its tiny and small allocations
+//
+void *thread_mixed_frees(void *arg)
+{
+	void** allocations_results = (void**) arg;
+
+	for (size_t i = 0; i < 2; ++i)
+	{
+		free(allocations_results[i]);
+	}
+
+	return NULL;
 }
 
 int main(void)
@@ -35,39 +92,57 @@ int main(void)
 	pthread_t threads[3];	
 	void** thread_results[3];  // Array to store the return values from each thread
 
-	write(STDOUT_FILENO, "Starting multithreaded memory allocation test...\n", 48);
-
-	
+	// -------------------------------------- ALLOCATIONS --------------------------------------//
 	for (int i = 0; i < 3; i++)
 	{
 		pthread_create(&threads[i], NULL, thread_mixed_allocations, &thread_ids[i]);
 	}
 	
-	
 	for (int i = 0; i < 3; i++)
 	{
 		pthread_join(threads[i], (void**)&thread_results[i]);
-		
-		free(thread_results[i][2]);
 	}
-
-	ft_putnbr_fd(3 * 256 + 3 * 4096, STDOUT_FILENO);
-	write(STDOUT_FILENO, " bytes will be allocated in total by the threads.\n", 50);
 	
-	write(STDOUT_FILENO, "\n=== MEMORY STATE AFTER ALLOCATIONS IN THREADS ===\n", 51);
-	show_alloc_mem_ex();
+	write(STDOUT_FILENO, "\n=== MEMORY STATE AFTER ALLOCATIONS IN THREADS ===\n", 52);
+	show_alloc_mem();
+
+	// -------------------------------------- REALLOCATIONS --------------------------------------//
+	for (int i = 0; i < 3; i++)
+	{
+		pthread_create(&threads[i], NULL, thread_mixed_reallocations, thread_results[i]);
+	}
 
 	for (int i = 0; i < 3; i++)
 	{
-		for (int j = 0; j < 2; j++)
-		{
-			free(thread_results[i][j]);
-		}
+		pthread_join(threads[i], (void**)&thread_results[i]);
+	}
+
+	write(STDOUT_FILENO, "\n=== MEMORY STATE AFTER REALLOCATIONS IN THREADS ===\n", 51);
+	show_alloc_mem();
+
+	// -------------------------------------- FREES --------------------------------------//
+	for (int i = 0; i < 3; i++)
+	{
+		pthread_create(&threads[i], NULL, thread_mixed_frees, thread_results[i]);
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		pthread_join(threads[i], NULL);
+	}
+	
+	write(STDOUT_FILENO, "\n=== MEMORY STATE AFTER FREEING IN THREADS ===\n", 47);
+	show_alloc_mem();
+
+
+	for (int i = 0; i < 3; i++)
+	{
+		print_address(thread_results[i]);
 		free(thread_results[i]);
 	}
 
-	write(STDOUT_FILENO, "\n=== MEMORY STATE AFTER FREEING ALL ALLOCATIONS ===\n", 53);
-	show_alloc_mem_ex();
+	write(STDOUT_FILENO, "\n=== MEMORY STATE AFTER FREEING THREAD RESULTS ===\n", 52);
+	show_alloc_mem();
 
 	return 0;
 }

@@ -37,17 +37,21 @@ static size_t print_block(t_block *block, bool show_dump)
 	t_space *space = (t_space *)((char *)block + align_on_16(sizeof(t_block)));
 	while (true)
 	{
-		if (space->taken)
+		if (true)
 		{
 			print_address((char *)space + align_on_16(sizeof(t_space)));
 			write(STDOUT_FILENO, " - ", 3);
 			print_address((char *)space + align_on_16(sizeof(t_space)) + space->size);
 			write(STDOUT_FILENO, " : ", 3);
 			ft_putnbr_fd((int)space->size, STDOUT_FILENO);
-			write(STDOUT_FILENO, " bytes\n", 7);
+			write(STDOUT_FILENO, " bytes ", 8);
+			if (space->taken)
+				write(STDOUT_FILENO, "taken\n", 6);
+			else
+				write(STDOUT_FILENO, "free\n", 5);
 			bytes += space->size;
 
-			for (size_t i = 0; show_dump && i < space->size; i+=16)
+			for (size_t i = 0; space->taken && show_dump && i < space->size; i+=16)
 			{
 				unsigned char *data = (unsigned char *)((char *)space + align_on_16(sizeof(t_space)));
 				size_t line_size = (space->size - i) < 16 ? (space->size - i) : 16;
@@ -118,31 +122,25 @@ void show_alloc_mem(void)
 {
 	size_t bytes = 0;
 
-	pthread_mutex_lock(&get_blocks()->tinies_mutex);
+	pthread_mutex_lock(&get_blocks()->mutex);
 	for (t_block *block = get_blocks()->tinies; block != NULL; block = block->next)
 	{
 		print_block_header("TINY", block);
 		bytes += print_block(block, false);
 	}
-	pthread_mutex_unlock(&get_blocks()->tinies_mutex);
 
-
-	pthread_mutex_lock(&get_blocks()->smalls_mutex);
 	for (t_block *block = get_blocks()->smalls; block != NULL; block = block->next)
 	{
 		print_block_header("SMALL", block);
 		bytes += print_block(block, false);
 	}
-	pthread_mutex_unlock(&get_blocks()->smalls_mutex);
 
-
-	pthread_mutex_lock(&get_blocks()->larges_mutex);
 	for (t_block *block = get_blocks()->larges; block != NULL; block = block->next)
 	{
 		print_block_header("LARGE", block);
 		bytes += print_block(block, false);
 	}
-	pthread_mutex_unlock(&get_blocks()->larges_mutex);
+	pthread_mutex_unlock(&get_blocks()->mutex);
 
 	ft_putstr_fd("Total : ", STDOUT_FILENO);
 	ft_putnbr_fd((int)bytes, STDOUT_FILENO);
@@ -153,31 +151,25 @@ void show_alloc_mem_ex(void)
 {
 	size_t bytes = 0;
 
-	pthread_mutex_lock(&get_blocks()->tinies_mutex);
+	pthread_mutex_lock(&get_blocks()->mutex);
 	for (t_block *block = get_blocks()->tinies; block != NULL; block = block->next)
 	{
 		print_block_header("TINY", block);
 		bytes += print_block(block, true);
 	}
-	pthread_mutex_unlock(&get_blocks()->tinies_mutex);
 
-
-	pthread_mutex_lock(&get_blocks()->smalls_mutex);
 	for (t_block *block = get_blocks()->smalls; block != NULL; block = block->next)
 	{
 		print_block_header("SMALL", block);
 		bytes += print_block(block, true);
 	}
-	pthread_mutex_unlock(&get_blocks()->smalls_mutex);
 
-
-	pthread_mutex_lock(&get_blocks()->larges_mutex);
 	for (t_block *block = get_blocks()->larges; block != NULL; block = block->next)
 	{
 		print_block_header("LARGE", block);
 		bytes += print_block(block, true);
 	}
-	pthread_mutex_unlock(&get_blocks()->larges_mutex);
+	pthread_mutex_unlock(&get_blocks()->mutex);
 
 	ft_putstr_fd("Total : ", STDOUT_FILENO);
 	ft_putnbr_fd((int)bytes, STDOUT_FILENO);
