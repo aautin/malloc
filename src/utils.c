@@ -30,14 +30,18 @@ size_t align_on_page(size_t size)
 	return (size / page_size + 1) * page_size;
 }
 
-size_t get_block_size(enum e_fixed_size fixed_size)
+size_t get_block_size(t_block_type block_type, size_t size)
 {
-	return align_on_page(align_on_16(sizeof(t_block)) + 100 * align_on_16(sizeof(t_space)) + 100 * fixed_size);
-}
-
-size_t get_large_block_size(size_t custom_size)
-{
-	return align_on_16(sizeof(t_block)) + align_on_16(sizeof(t_space)) + align_on_16(custom_size);
+	switch (block_type)
+	{
+		case TINY_BLOCK:
+			return align_on_page(align_on_16(sizeof(t_block)) + 100 * align_on_16(sizeof(t_space)) + 100 * TINY_SIZE);
+		case SMALL_BLOCK:
+			return align_on_page(align_on_16(sizeof(t_block)) + 100 * align_on_16(sizeof(t_space)) + 100 * SMALL_SIZE);
+		case LARGE_BLOCK:
+			return align_on_16(sizeof(t_block)) + align_on_16(sizeof(t_space)) + align_on_16(size);
+	}
+	return 0;
 }
 
 void push_front(t_block **blocks, t_block *new_block)
@@ -90,4 +94,18 @@ void remove_block_from_list(t_block **blocks, t_block *to_remove)
 	}
 }
 
-void update_
+t_block_type get_type(size_t size)
+{
+	if (size <= TINY_SIZE)
+	{
+		return TINY_BLOCK;
+	}
+	else if (size <= SMALL_SIZE)
+	{
+		return SMALL_BLOCK;
+	}
+	else
+	{
+		return LARGE_BLOCK;
+	}
+}

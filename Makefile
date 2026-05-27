@@ -36,6 +36,7 @@ TESTS_PATH	:=	tests
 TESTS		:=	\
 				main.c \
 				main_ex.c \
+				multithread_allocations.c \
 				test0.c \
 				test1.c \
 				test2.c \

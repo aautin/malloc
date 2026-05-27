@@ -1,11 +1,13 @@
 #include "malloc.h"
 
 
-t_blocks g_blocks = {NULL, NULL, NULL, {0, 0}};
+t_blocks g_blocks = {0};
 
 __attribute__((constructor)) void init_global()
 {
-	gettimeofday(&g_blocks.start_time, NULL);
+	pthread_mutex_init(&g_blocks.tinies_mutex, NULL);
+	pthread_mutex_init(&g_blocks.smalls_mutex, NULL);
+	pthread_mutex_init(&g_blocks.larges_mutex, NULL);
 }
 
 t_blocks* get_blocks()

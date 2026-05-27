@@ -117,23 +117,32 @@ static void print_block_header(char* type, void* address)
 void show_alloc_mem(void)
 {
 	size_t bytes = 0;
+
+	pthread_mutex_lock(&get_blocks()->tinies_mutex);
 	for (t_block *block = get_blocks()->tinies; block != NULL; block = block->next)
 	{
 		print_block_header("TINY", block);
 		bytes += print_block(block, false);
 	}
+	pthread_mutex_unlock(&get_blocks()->tinies_mutex);
 
+
+	pthread_mutex_lock(&get_blocks()->smalls_mutex);
 	for (t_block *block = get_blocks()->smalls; block != NULL; block = block->next)
 	{
 		print_block_header("SMALL", block);
 		bytes += print_block(block, false);
 	}
+	pthread_mutex_unlock(&get_blocks()->smalls_mutex);
 
+
+	pthread_mutex_lock(&get_blocks()->larges_mutex);
 	for (t_block *block = get_blocks()->larges; block != NULL; block = block->next)
 	{
 		print_block_header("LARGE", block);
 		bytes += print_block(block, false);
 	}
+	pthread_mutex_unlock(&get_blocks()->larges_mutex);
 
 	ft_putstr_fd("Total : ", STDOUT_FILENO);
 	ft_putnbr_fd((int)bytes, STDOUT_FILENO);
@@ -143,23 +152,32 @@ void show_alloc_mem(void)
 void show_alloc_mem_ex(void)
 {
 	size_t bytes = 0;
+
+	pthread_mutex_lock(&get_blocks()->tinies_mutex);
 	for (t_block *block = get_blocks()->tinies; block != NULL; block = block->next)
 	{
 		print_block_header("TINY", block);
 		bytes += print_block(block, true);
 	}
+	pthread_mutex_unlock(&get_blocks()->tinies_mutex);
 
+
+	pthread_mutex_lock(&get_blocks()->smalls_mutex);
 	for (t_block *block = get_blocks()->smalls; block != NULL; block = block->next)
 	{
 		print_block_header("SMALL", block);
 		bytes += print_block(block, true);
 	}
+	pthread_mutex_unlock(&get_blocks()->smalls_mutex);
 
+
+	pthread_mutex_lock(&get_blocks()->larges_mutex);
 	for (t_block *block = get_blocks()->larges; block != NULL; block = block->next)
 	{
 		print_block_header("LARGE", block);
 		bytes += print_block(block, true);
 	}
+	pthread_mutex_unlock(&get_blocks()->larges_mutex);
 
 	ft_putstr_fd("Total : ", STDOUT_FILENO);
 	ft_putnbr_fd((int)bytes, STDOUT_FILENO);

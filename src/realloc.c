@@ -15,12 +15,30 @@ void *realloc(void *ptr, size_t size)
 	}
 
 	t_space *space = (t_space *)((char *)ptr - align_on_16(sizeof(t_space)));
+	t_block_type block_type = space->block_type;
+	
+	pthread_mutex_t* mutex;
+	switch (block_type)
+	{
+		case TINY_BLOCK:
+			mutex = &get_blocks()->tinies_mutex;
+			break;
+		case SMALL_BLOCK:
+			mutex = &get_blocks()->smalls_mutex;
+			break;
+		case LARGE_BLOCK:
+			mutex = &get_blocks()->larges_mutex;
+			break;
+	}
+
 	size = align_on_16(size);
 	if (space->size == size)
 	{
 		return ptr;
 	}
-	else if (space->size > size)
+	
+	pthread_mutex_lock(mutex);
+	if (space->size > size)
 	{
 		size_t bytes_getting_freed = space->size - size;
 		if (!space->is_last)
@@ -40,8 +58,10 @@ void *realloc(void *ptr, size_t size)
 				new_next_space->size     = bytes_getting_freed;
 				new_next_space->taken    = false;
 				new_next_space->is_last  = old_next_space_is_last;
+				new_next_space->block_type = block_type;
 
 				space->size = size;
+				pthread_mutex_unlock(mutex);
 				return ptr;
 			}
 		}
@@ -61,20 +81,23 @@ void *realloc(void *ptr, size_t size)
 				next_space->previous = new_next_space;
 			}
 
-			new_next_space->previous = space;
-			new_next_space->size     = bytes_getting_freed;
-			new_next_space->taken    = false;
-			new_next_space->is_last  = old_space_is_last;
+			new_next_space->previous   = space;
+			new_next_space->size       = bytes_getting_freed;
+			new_next_space->taken      = false;
+			new_next_space->is_last    = old_space_is_last;
+			new_next_space->block_type = block_type;
 
 			space->size    = size;
 			space->is_last = true;
+			pthread_mutex_unlock(mutex);
 			return ptr;
 		}
 
 		//
-		// There is no next space and the remaining bytes are not big enought to create a new space,
+		// There is no next space and the remaining bytes are not big enough to create a new space,
 		// we just keep the allocation as it is
 		//
+		pthread_mutex_unlock(mutex);
 		return ptr;
 	}
 	else
@@ -96,10 +119,11 @@ void *realloc(void *ptr, size_t size)
 					
 					t_space *new_next_space      = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + size);
 	
-					new_next_space->previous = space;
-					new_next_space->size     = old_next_space_size - (size - space->size);
-					new_next_space->is_last  = old_next_space_is_last;
-					new_next_space->taken    = false;
+					new_next_space->previous   = space;
+					new_next_space->size       = old_next_space_size - (size - space->size);
+					new_next_space->is_last    = old_next_space_is_last;
+					new_next_space->taken      = false;
+					new_next_space->block_type = block_type;
 	
 					space->size = size;
 				}
@@ -108,19 +132,25 @@ void *realloc(void *ptr, size_t size)
 					space->size += align_on_16(sizeof(t_space)) + next_space->size;
 					space->is_last = next_space->is_last;
 				}
+				pthread_mutex_unlock(mutex);
 				return ptr;
 			}
 		}
-
+		
+		pthread_mutex_unlock(mutex);
 		void *new_ptr = malloc(size);
 		if (new_ptr == NULL)
 		{
 			return NULL;
 		}
 
+		pthread_mutex_lock(mutex);
 		ft_memcpy(new_ptr, ptr, space->size);
+		pthread_mutex_unlock(mutex);
+
 		free(ptr);
 		return new_ptr;
 	}
-	return (NULL);
+	pthread_mutex_unlock(mutex);
+	return NULL;
 }

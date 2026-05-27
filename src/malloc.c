@@ -22,7 +22,7 @@ static void* get_free_space(t_block *blocks, size_t aligned_allocation_size)
 	return NULL;
 }
 
-static void prepare_block(t_block *block, size_t block_size, size_t aligned_allocation_size)
+static void prepare_block(t_block *block, size_t block_size, size_t aligned_allocation_size, t_block_type block_type)
 {
 	t_space* space = (t_space *)((char *)block + align_on_16(sizeof(t_block)));
 	
@@ -36,22 +36,24 @@ static void prepare_block(t_block *block, size_t block_size, size_t aligned_allo
 		space->is_last = false;
 		
 		t_space* next_space = (t_space *)((char *)space + align_on_16(sizeof(t_space)) + aligned_allocation_size);
-		next_space->previous = space;
-		next_space->size     = block_size - align_on_16(sizeof(t_block)) - align_on_16(sizeof(t_space)) - aligned_allocation_size;
-		next_space->taken    = false;
-		next_space->is_last  = true;
+		next_space->previous   = space;
+		next_space->size       = block_size - align_on_16(sizeof(t_block)) - align_on_16(sizeof(t_space)) - aligned_allocation_size;
+		next_space->taken      = false;
+		next_space->is_last    = true;
+		next_space->block_type = space->block_type;
 	}
 	else
 	{
 		space->is_last = true;
 		aligned_allocation_size = block_size - align_on_16(sizeof(t_block)) - align_on_16(sizeof(t_space));
 	}
-	space->previous = NULL;
-	space->taken    = true;
-	space->size     = aligned_allocation_size;
+	space->previous   = NULL;
+	space->taken      = true;
+	space->size       = aligned_allocation_size;
+	space->block_type = block_type;
 }
 
-static void allocate_space(t_space* space, size_t aligned_allocation_size)
+static void allocate_space(t_space* space, size_t aligned_allocation_size, t_block_type block_type)
 {
 	if (space->size >= aligned_allocation_size + align_on_16(sizeof(t_space)) + 16)
 	{
@@ -67,6 +69,7 @@ static void allocate_space(t_space* space, size_t aligned_allocation_size)
 				new_next_space->size     = space->size - aligned_allocation_size - align_on_16(sizeof(t_space)) + align_on_16(sizeof(t_space)) + next_space->size;
 				new_next_space->taken    = false;
 				new_next_space->is_last  = next_space->is_last;
+				new_next_space->block_type = space->block_type;
 				return;
 			}
 		}
@@ -75,44 +78,27 @@ static void allocate_space(t_space* space, size_t aligned_allocation_size)
 		new_next_space->size     = space->size - aligned_allocation_size - align_on_16(sizeof(t_space));
 		new_next_space->taken    = false;
 		new_next_space->is_last  = space->is_last;
-		
+		new_next_space->block_type = space->block_type;
+
 		space->is_last = false;
 	}
 	else
 	{
 		aligned_allocation_size = space->size;
 	}
+	space->block_type = block_type;
 	space->taken = true;
 	space->size  = aligned_allocation_size;
 }
 
-void *malloc(size_t size)
+static void* apply(t_block** blocks, size_t size, t_block_type type)
 {
-	t_block** blocks;
-	size_t    new_block_size;
-
-	if (size <= TINY)
-	{
-		blocks = &get_blocks()->tinies;
-		new_block_size = get_block_size(TINY);
-	}
-	else if (size <= SMALL)
-	{
-		blocks = &get_blocks()->smalls;
-		new_block_size = get_block_size(SMALL);
-	}
-	else
-	{
-		blocks = &get_blocks()->larges;
-		new_block_size = get_large_block_size(size);
-	}
+	size_t new_block_size = get_block_size(type, size);
 
 	void* free_space = get_free_space(*blocks, align_on_16(size));
 	if (free_space != NULL)
 	{
-		allocate_space(free_space, align_on_16(size));
-		
-		// show_memory();
+		allocate_space(free_space, align_on_16(size), type);
 		return free_space + align_on_16(sizeof(t_space));
 	}
 	else
@@ -122,11 +108,38 @@ void *malloc(size_t size)
 		{
 			return NULL;
 		}
-		
-		prepare_block(new_block, new_block_size, align_on_16(size));
+
+		prepare_block(new_block, new_block_size, align_on_16(size), type);
 		push_front(blocks, new_block);
 
-		// show_memory();
 		return (char *)new_block + align_on_16(sizeof(t_block)) + align_on_16(sizeof(t_space));
 	}
+}
+
+void *malloc(size_t size)
+{
+	t_block**        blocks;
+	pthread_mutex_t* mutex;
+
+	t_block_type type = get_type(size);
+	switch (type)
+	{
+		case TINY_BLOCK:
+			blocks = &get_blocks()->tinies;
+			mutex = &get_blocks()->tinies_mutex;
+			break;
+		case SMALL_BLOCK:
+			blocks = &get_blocks()->smalls;
+			mutex = &get_blocks()->smalls_mutex;
+			break;
+		case LARGE_BLOCK:
+			blocks = &get_blocks()->larges;
+			mutex = &get_blocks()->larges_mutex;
+			break;
+	}
+
+	pthread_mutex_lock(mutex);
+	void* ptr = apply(blocks, size, type);
+	pthread_mutex_unlock(mutex);
+	return ptr;
 }
