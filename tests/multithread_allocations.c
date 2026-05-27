@@ -42,35 +42,6 @@ void *thread_mixed_reallocations(void *arg)
 	return allocations_results;
 }
 
-void print_address(void* address)
-{
-	char buffer[20];
-	int i = 0;
-	unsigned long long addr = (unsigned long long) address;
-	
-	if (addr == 0)
-	{
-		write(STDOUT_FILENO, "0x0", 3);
-		return;
-	}
-	
-	while (addr > 0)
-	{
-		int digit = addr % 16;
-		if (digit < 10)
-		buffer[i++] = '0' + digit;
-		else
-		buffer[i++] = 'a' + (digit - 10);
-		addr /= 16;
-	}
-	
-	write(STDOUT_FILENO, "0x", 2);
-	while (i > 0)
-	{
-		write(STDOUT_FILENO, &buffer[--i], 1);
-	}
-}
-
 //
 // Each thread free its tiny and small allocations
 //
@@ -137,7 +108,6 @@ int main(void)
 
 	for (int i = 0; i < 3; i++)
 	{
-		print_address(thread_results[i]);
 		free(thread_results[i]);
 	}
 
