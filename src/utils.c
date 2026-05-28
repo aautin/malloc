@@ -79,7 +79,6 @@ size_t blocks_number(t_block *blocks)
 
 void remove_block_from_list(t_block **blocks, t_block *to_remove)
 {
-	write(STDOUT_FILENO, "Unmapping block at address ", 27);
 	if (*blocks == to_remove)
 	{
 		*blocks = to_remove->next;

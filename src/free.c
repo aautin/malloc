@@ -102,7 +102,6 @@ void apply(t_space *space)
 			block_list    = &blocks->larges;
 		}
 		
-		write(STDOUT_FILENO, "Unmapping block at address ", 27);
 		remove_block_from_list(block_list, block_to_unmap);
 		munmap(block_to_unmap, size_to_unmap);
 	}
