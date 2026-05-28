@@ -46,7 +46,22 @@ static size_t print_block(t_block *block, bool show_dump)
 			ft_putnbr_fd((int)space->size, STDOUT_FILENO);
 			write(STDOUT_FILENO, " bytes ", 8);
 			if (space->taken)
-				write(STDOUT_FILENO, "taken\n", 6);
+			{
+				write(STDOUT_FILENO, "taken. Allocated ", 18);
+				uint32_t seconds, milliseconds;
+				get_time_parts(space->creation_time, &seconds, &milliseconds);
+				ft_putnbr_fd((int)seconds, STDOUT_FILENO);
+				write(STDOUT_FILENO, "s ", 2);
+				ft_putnbr_fd((int)milliseconds, STDOUT_FILENO);
+				write(STDOUT_FILENO, "ms", 2);
+				write(STDOUT_FILENO, " ago ", 1);
+
+				if (is_realloc(space->creation_time))
+				{
+					write(STDOUT_FILENO, " (reallocated)", 15);
+				}
+				write(STDOUT_FILENO, "\n", 1);
+			}
 			else
 				write(STDOUT_FILENO, "free\n", 5);
 			bytes += space->size;

@@ -1,4 +1,5 @@
 #include "malloc.h"
+#include "libft.h"
 
 
 t_blocks g_blocks = {PTHREAD_MUTEX_INITIALIZER, NULL, NULL, NULL};

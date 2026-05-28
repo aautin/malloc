@@ -28,6 +28,7 @@ void *realloc(void *ptr, size_t size)
 		return ptr;
 	}
 	
+	set_realloc_flag(&space->creation_time);
 	if (space->size > size)
 	{
 		size_t bytes_getting_freed = space->size - size;
@@ -50,6 +51,7 @@ void *realloc(void *ptr, size_t size)
 				new_next_space->block_type = block_type;
 
 				space->size = size;
+
 				pthread_mutex_unlock(mutex);
 				return ptr;
 			}
@@ -147,6 +149,8 @@ void *realloc(void *ptr, size_t size)
 		{
 			return NULL;
 		}
+		t_space *new_space = (t_space *)((char *)new_ptr - align_on_16(sizeof(t_space)));
+		set_realloc_flag(&new_space->creation_time);
 
 		ft_memcpy(new_ptr, ptr, space->size);
 

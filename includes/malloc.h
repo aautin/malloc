@@ -9,6 +9,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #define TINY_SIZE  2048
 #define SMALL_SIZE (TINY_SIZE * 64)
@@ -28,6 +29,8 @@ typedef struct s_space
 	bool 		    taken;
 	bool 		    is_last;
 	t_block_type	block_type;
+
+	uint64_t		creation_time;
 } t_space;
 
 typedef struct s_block
@@ -56,6 +59,10 @@ bool         is_in_blocks(t_block *blocks, t_block *to_find);
 size_t       blocks_number(t_block *blocks);
 void         remove_block_from_list(t_block **blocks, t_block *to_remove);
 t_block_type get_type(size_t size);
+void         store_time(uint64_t* buffer);
+void         get_time_parts(uint64_t stored_time, uint32_t *seconds, uint32_t *milliseconds);
+void         set_realloc_flag(uint64_t *buffer);
+int          is_realloc(uint64_t buffer);
 
 
 // Global variables

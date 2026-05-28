@@ -51,11 +51,14 @@ static void prepare_block(t_block *block, size_t block_size, size_t aligned_allo
 	space->taken      = true;
 	space->size       = aligned_allocation_size;
 	space->block_type = block_type;
+
+	store_time(&space->creation_time);
 }
 
 static void allocate_space(t_space* space, size_t aligned_allocation_size, t_block_type block_type)
 {
 	space->block_type = block_type;
+	store_time(&space->creation_time);
 	
 	if (space->size >= aligned_allocation_size + align_on_16(sizeof(t_space)) + 16)
 	{

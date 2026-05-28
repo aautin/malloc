@@ -110,3 +110,31 @@ t_block_type get_type(size_t size)
 		return LARGE_BLOCK;
 	}
 }
+
+void store_time(uint64_t *buffer)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    *buffer = ((uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000)) << 1;
+}
+
+void set_realloc_flag(uint64_t *buffer)
+{
+    *buffer |= 1;
+}
+
+int is_realloc(uint64_t buffer)
+{
+    return (buffer & 1);
+}
+
+void get_time_parts(uint64_t stored_time, uint32_t *seconds, uint32_t *milliseconds)
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	uint64_t now_ms = (uint64_t)now.tv_sec * 1000ULL + (uint64_t)(now.tv_usec / 1000);
+	uint64_t stored_ms = stored_time >> 1;
+	uint64_t diff_ms = now_ms - stored_ms;
+	*seconds = (uint32_t)(diff_ms / 1000);
+	*milliseconds = (uint32_t)(diff_ms % 1000);
+}

@@ -41,7 +41,9 @@ TESTS		:=	\
 				test5.c
 
 TESTS_NEED_LIB  :=  \
+				main_fragmentation.c \
 				main.c \
+				multithread_with_sleeps.c \
 				multithread_allocations.c \
 				test4.c \
 				main_ex.c
